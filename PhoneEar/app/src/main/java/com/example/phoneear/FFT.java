@@ -1,4 +1,4 @@
-package com.example.mis.sensor;
+package com.example.phoneear;
 
 /*
  *  Copyright 2006-2007 Columbia University.
