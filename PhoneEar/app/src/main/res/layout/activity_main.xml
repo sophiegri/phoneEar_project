@@ -22,37 +22,16 @@
 
     <TextView
         android:id="@+id/audio_signal"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_width="wrap_content"
         android:layout_marginTop="32dp"
         android:layout_marginBottom="32dp"
         android:visibility="visible"
-        app:layout_constraintTop_toBottomOf="@+id/title"
-        app:layout_constraintBottom_toTopOf="@+id/graph"
-        app:layout_constraintStart_toEndOf="@+id/guidelineVerticalBegin"
-        app:layout_constraintEnd_toEndOf="@+id/guidelineVerticalEnd"
-        app:layout_constraintHorizontal_bias="0.5" />
-
-    <com.jjoe64.graphview.GraphView
-        android:id="@+id/graph"
-        android:layout_width="match_parent"
-        android:layout_height="200dip"
-        app:layout_constraintTop_toBottomOf="@+id/audio_signal"
-        app:layout_constraintBottom_toTopOf="@+id/playBtn"
-        app:layout_constraintStart_toEndOf="@+id/guidelineVerticalBegin"
-        app:layout_constraintEnd_toEndOf="@+id/guidelineVerticalEnd" />
-
-    <Button
-        android:id="@+id/playBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="32dp"
-        android:onClick="startPlaying"
-        android:text="@string/play"
         app:layout_constraintBottom_toTopOf="@+id/recordBtn"
         app:layout_constraintEnd_toEndOf="@+id/guidelineVerticalEnd"
         app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/guidelineVerticalBegin" />
+        app:layout_constraintStart_toEndOf="@+id/guidelineVerticalBegin"
+        app:layout_constraintTop_toBottomOf="@+id/title" />
 
     <ToggleButton
         android:id="@+id/recordBtn"
