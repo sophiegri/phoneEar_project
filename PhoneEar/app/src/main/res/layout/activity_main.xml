@@ -21,6 +21,32 @@
         app:layout_constraintHorizontal_bias="0.5" />
 
     <TextView
+        android:id="@+id/current_state"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:layout_marginBottom="32dp"
+        android:visibility="visible"
+        app:layout_constraintBottom_toTopOf="@+id/decode_message"
+        app:layout_constraintEnd_toEndOf="@+id/guidelineVerticalEnd"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/guidelineVerticalBegin"
+        app:layout_constraintTop_toBottomOf="@+id/title" />
+
+    <TextView
+        android:id="@+id/decode_message"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:layout_marginBottom="32dp"
+        android:visibility="visible"
+        app:layout_constraintBottom_toTopOf="@+id/audio_signal"
+        app:layout_constraintEnd_toEndOf="@+id/guidelineVerticalEnd"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/guidelineVerticalBegin"
+        app:layout_constraintTop_toBottomOf="@+id/current_state" />
+
+    <TextView
         android:id="@+id/audio_signal"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -31,7 +57,7 @@
         app:layout_constraintEnd_toEndOf="@+id/guidelineVerticalEnd"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/guidelineVerticalBegin"
-        app:layout_constraintTop_toBottomOf="@+id/title" />
+        app:layout_constraintTop_toBottomOf="@+id/decode_message" />
 
     <ToggleButton
         android:id="@+id/recordBtn"

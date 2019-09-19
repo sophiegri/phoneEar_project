@@ -3,24 +3,16 @@ package com.example.phoneear;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
-import android.media.AudioFormat;
-import android.media.AudioRecord;
-import android.media.MediaRecorder;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Message;
 import android.os.SystemClock;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import android.graphics.Color;
 
 /*
 Sources:
@@ -30,7 +22,9 @@ https://github.com/ptyagicodecamp/android-recipes/blob/develop/AudioRuntimePermi
 
 public class MainActivity extends AppCompatActivity {
 
-    TextView textView;
+    TextView frequenciesTextVisualization;
+    TextView currentState;
+    TextView decodedMessage;
     boolean isRecording = false;
 
     SamplingLoop samplingThread = null;
@@ -53,12 +47,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        textView = findViewById(R.id.audio_signal);
+        frequenciesTextVisualization = findViewById(R.id.audio_signal);
+        currentState = findViewById(R.id.current_state);
+        decodedMessage = findViewById(R.id.decode_message);
 
         Resources res = getResources();
         analyzerParam = new AnalyzerParameters(res);
 
-        textView.setText(
+        frequenciesTextVisualization.setText(
                 "17.800 Hz :\n" +
                 "18.000 Hz :\n" +
                 "18.200 Hz :\n" +
@@ -72,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
                 "19.800 Hz :\n" +
                 "20.000 Hz :"
         );
+        currentState.setText("Message: Waiting for the start of the recording.");
     }
 
     @Override

@@ -39,10 +39,14 @@ class SamplingLoop extends Thread {
     private final String TAG = "SamplingLoop";
     private volatile boolean isRunning = true;
     private volatile boolean recordingIsPaused = false;
+    private volatile boolean messageStarted = false;
     private ShortTimeFT stft;   // use with care
     private final AnalyzerParameters analyzerParam;
 
-    private double[] spectrumDBcopy;   // transfers data from SamplingLoop to AnalyzerGraphic
+    private double[] spectrumDBcopy;   // transfers data from SamplingLoop to text representation
+    // initiate array that keeps score how often a frequency was the maximum value
+    private int[] frequencyMaxAmount = new int[12];
+    private int maxCounter;
 
     private final MainActivity activity;
 
@@ -63,56 +67,23 @@ class SamplingLoop extends Thread {
 
     private double baseTimeMs = SystemClock.uptimeMillis();
 
-    private void LimitFrameRate(double updateMs) {
-        // Limit the frame rate by wait `delay' ms.
-        baseTimeMs += updateMs;
-        long delay = (int) (baseTimeMs - SystemClock.uptimeMillis());
-//      Log.i(TAG, "delay = " + delay);
-        if (delay > 0) {
-            try {
-                Thread.sleep(delay);
-            } catch (InterruptedException e) {
-                Log.i(TAG, "Sleep interrupted");  // seems never reached
-            }
-        } else {
-            baseTimeMs -= delay;  // get current time
-            // Log.i(TAG, "time: cmp t="+Long.toString(SystemClock.uptimeMillis())
-            //            + " v.s. t'=" + Long.toString(baseTimeMs));
-        }
-    }
-
-    private double[] mdata;
-
-    // Generate test data.
-    private int readTestData(short[] a, int offsetInShorts, int sizeInShorts, int id) {
-        if (mdata == null || mdata.length != sizeInShorts) {
-            mdata = new double[sizeInShorts];
-        }
-        Arrays.fill(mdata, 0.0);
-        switch (id - 1000) {
-            case 1:
-                break;
-            case 0:
-                break;
-            case 2:
-                for (int i = 0; i < sizeInShorts; i++) {
-                    a[i] = (short) (analyzerParam.SAMPLE_VALUE_MAX * (2.0*Math.random() - 1));
-                }
-                break;
-            default:
-                Log.w(TAG, "readTestData(): No this source id = " + analyzerParam.audioSourceId);
-        }
-        // Block this thread, so that behave as if read from real device.
-        LimitFrameRate(1000.0*sizeInShorts / analyzerParam.sampleRate);
-        return sizeInShorts;
-    }
-
     @Override
     public void run() {
         AudioRecord record;
 
         long tStart = SystemClock.uptimeMillis();
         long tEnd = SystemClock.uptimeMillis();
+        long lastUpdate = SystemClock.uptimeMillis();
+
+        if (! recordingIsPaused) {
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    activity.currentState.setText("Message: Getting ready...");
+                }
+            });
+        }
+
         if (tEnd - tStart < 500) {
             Log.i(TAG, "wait more.." + (500 - (tEnd - tStart)) + " ms");
             // Wait until previous instance of AudioRecord fully released.
@@ -206,11 +177,7 @@ class SamplingLoop extends Thread {
         // related to recorder: e.g. audioSourceId, sampleRate, bufferSampleSize
         while (isRunning) {
             // Read data
-            if (analyzerParam.audioSourceId >= 1000) {
-                numOfReadShort = readTestData(audioSamples, 0, readChunkSize, analyzerParam.audioSourceId);
-            } else {
-                numOfReadShort = record.read(audioSamples, 0, readChunkSize);   // pulling
-            }
+            numOfReadShort = record.read(audioSamples, 0, readChunkSize);   // pulling
 
             if (recordingIsPaused) {
 //          fpsCounter.inc();
@@ -230,7 +197,7 @@ class SamplingLoop extends Thread {
                 activity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        activity.textView.setText(
+                        activity.frequenciesTextVisualization.setText(
                             "17.800 Hz : " + convertValuesIntoSigns(spectrumDBcopy[207]) + "\n" +
                             "18.000 Hz : " + convertValuesIntoSigns(spectrumDBcopy[209]) + "\n" +
                             "18.200 Hz : " + convertValuesIntoSigns(spectrumDBcopy[211]) + "\n" +
@@ -244,6 +211,8 @@ class SamplingLoop extends Thread {
                             "19.800 Hz : " + convertValuesIntoSigns(spectrumDBcopy[230]) + "\n" +
                             "20.000 Hz : " + convertValuesIntoSigns(spectrumDBcopy[232])
                         );
+                        //activity.currentState.setText("Message: Waiting for begin of message...");
+                        activity.currentState.setText("Message: " + Arrays.toString(frequencyMaxAmount));
                     }
                 });
 
@@ -254,6 +223,93 @@ class SamplingLoop extends Thread {
                 // get RMS
                 activity.dtRMS = stft.getRMS();
                 activity.dtRMSFromFT = stft.getRMSFromFT();
+
+                // update recent value list every 50ms
+                if (SystemClock.uptimeMillis()-lastUpdate > 100) {
+                    lastUpdate = SystemClock.uptimeMillis();
+                    // average value from 15.8 kHz to 17 kHz
+                    int average = (int) ((spectrumDBcopy[183]+spectrumDBcopy[186]+spectrumDBcopy[188]+spectrumDBcopy[190]+spectrumDBcopy[193]+spectrumDBcopy[195]+spectrumDBcopy[197])/7);
+                    int[] valuesFrequency = new int[12];
+                    valuesFrequency[0] = (int) spectrumDBcopy[207];
+                    valuesFrequency[1] = (int) spectrumDBcopy[209];
+                    valuesFrequency[2] = (int) spectrumDBcopy[211];
+                    valuesFrequency[3] = (int) spectrumDBcopy[214];
+                    valuesFrequency[4] = (int) spectrumDBcopy[216];
+                    valuesFrequency[5] = (int) spectrumDBcopy[218];
+                    valuesFrequency[6] = (int) spectrumDBcopy[221];
+                    valuesFrequency[7] = (int) spectrumDBcopy[223];
+                    valuesFrequency[8] = (int) spectrumDBcopy[225];
+                    valuesFrequency[9] = (int) spectrumDBcopy[228];
+                    valuesFrequency[10] = (int) spectrumDBcopy[230];
+                    valuesFrequency[11] = (int) spectrumDBcopy[232];
+
+                    int[] maxValueAndIndexCurrent = getMaxValueAndIndex(valuesFrequency);
+                    if (maxValueAndIndexCurrent[0] > average * 1.3) {
+                        frequencyMaxAmount[maxValueAndIndexCurrent[1]]++;
+                    }
+                    maxCounter++;
+
+                    int[] maxValueAndIndexOverall = getMaxValueAndIndex(frequencyMaxAmount);
+                    if (maxValueAndIndexOverall[0] >= 7) {
+                        maxCounter = 0;
+                        frequencyMaxAmount = new int[12];
+                        String newFrequency = "";
+                        switch (maxValueAndIndexOverall[1]) {
+                            case 0:
+                                if (! messageStarted) {
+                                    messageStarted = true;
+                                    newFrequency = "Start: ";
+                                }
+                                break;
+                            case 1:
+                                newFrequency = "18.0; ";
+                                break;
+                            case 2:
+                                newFrequency = "18.2; ";
+                                break;
+                            case 3:
+                                newFrequency = "18.4; ";
+                                break;
+                            case 4:
+                                newFrequency = "18.6; ";
+                                break;
+                            case 5:
+                                newFrequency = "18.8; ";
+                                break;
+                            case 6:
+                                newFrequency = "19.0; ";
+                                break;
+                            case 7:
+                                newFrequency = "19.2; ";
+                                break;
+                            case 8:
+                                newFrequency = "19.4; ";
+                                break;
+                            case 9:
+                                newFrequency = "19.6; ";
+                                break;
+                            case 10:
+                                newFrequency = "19.8; ";
+                                break;
+                            case 11:
+                                if (messageStarted) {
+                                    appendToDecodedMessage("End");
+                                    messageStarted = false;
+                                }
+                                break;
+                            default:
+                                break;
+                        }
+                        if (messageStarted) {
+                            appendToDecodedMessage(newFrequency);
+                        }
+                    }
+
+                    if (maxCounter == 10) { // reset maxCounter after 10 x 50 ms
+                        maxCounter = 0;
+                        frequencyMaxAmount = new int[12];
+                    }
+                }
             }
         }
         Log.i(TAG, "SamplingLoop::Run(): Actual sample rate: " + recorderMonitor.getSampleRate());
@@ -261,20 +317,22 @@ class SamplingLoop extends Thread {
         activity.runOnUiThread(new Runnable() {
            @Override
            public void run() {
-               activity.textView.setText(
+               activity.frequenciesTextVisualization.setText(
                        "17.800 Hz :\n" +
-                               "18.000 Hz :\n" +
-                               "18.200 Hz :\n" +
-                               "18.400 Hz :\n" +
-                               "18.600 Hz :\n" +
-                               "18.800 Hz :\n" +
-                               "19.000 Hz :\n" +
-                               "19.200 Hz :\n" +
-                               "19.400 Hz :\n" +
-                               "19.600 Hz :\n" +
-                               "19.800 Hz :\n" +
-                               "20.000 Hz :"
+                       "18.000 Hz :\n" +
+                       "18.200 Hz :\n" +
+                       "18.400 Hz :\n" +
+                       "18.600 Hz :\n" +
+                       "18.800 Hz :\n" +
+                       "19.000 Hz :\n" +
+                       "19.200 Hz :\n" +
+                       "19.400 Hz :\n" +
+                       "19.600 Hz :\n" +
+                       "19.800 Hz :\n" +
+                       "20.000 Hz :"
                );
+               activity.currentState.setText("Message: Waiting for the start of the recording.");
+               activity.decodedMessage.setText("");
            }
         });
         record.stop();
@@ -324,13 +382,39 @@ class SamplingLoop extends Thread {
             return new String(new char[12]).replace("\0", str);
         } else if (value < -30) {
             return new String(new char[13]).replace("\0", str);
-        } else if (value < -25) {
+        } else if (value > -20) {
             return new String(new char[14]).replace("\0", str);
-        } else if (value < -20) {
-            return new String(new char[15]).replace("\0", str);
         } else {
             return "";
         }
+    }
+
+    int[] getMaxValueAndIndex (int[] values) {
+        int array[] = values;
+
+        int max = array[0];
+        int index = 0;
+
+        for (int i = 0; i < array.length; i++) {
+            if (max < array[i])
+            {
+                max = array[i];
+                index = i;
+            }
+        }
+        int[] result = {max, index};
+
+        return result;
+    }
+
+    void appendToDecodedMessage(String newFrequency) {
+        final String frequency = newFrequency;
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                activity.decodedMessage.append(frequency);
+            }
+        });
     }
 
     void finish() {
