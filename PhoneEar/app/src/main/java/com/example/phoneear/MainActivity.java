@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.text.method.ScrollingMovementMethod;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
@@ -16,6 +17,8 @@ import android.widget.Toast;
 Sources:
 https://github.com/ptyagicodecamp/android-recipes/blob/develop/AudioRuntimePermissions/
 https://github.com/bewantbe/audio-analyzer-for-android
+https://stackoverflow.com/questions/1748977/making-textview-scrollable-on-android/13972249#13972249
+https://stackoverflow.com/questions/3506696/auto-scrolling-textview-in-android-to-bring-text-into-view
  */
 
 public class MainActivity extends AppCompatActivity {
@@ -39,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
         frequenciesTextVisualization = findViewById(R.id.audio_signal);
         currentState = findViewById(R.id.current_state);
         decodedMessage = findViewById(R.id.decode_message);
+        decodedMessage.setMovementMethod(new ScrollingMovementMethod());
 
         Resources res = getResources();
         analyzerParam = new AnalyzerParameters(res);

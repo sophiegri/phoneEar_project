@@ -1,7 +1,3 @@
-**to do**
-
-- [ ] adjust layout, so message is scrollable and has a border, like message
-
 # functionality
 
 If sounds exist within a high-frequency range, PhoneEar attempts to decode data from the sound. If data is successfully decoded, it is parsed for metadata that describes its purpose, and the content of the data message is routed to an appropriate app to trigger an action.

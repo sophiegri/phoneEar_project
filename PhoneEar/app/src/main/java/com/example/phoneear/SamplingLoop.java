@@ -46,7 +46,6 @@ class SamplingLoop extends Thread {
     private volatile boolean recordingIsPaused;
     private volatile boolean messageStarted = false;
     private volatile boolean waitForNextRound = false;
-    private ShortTimeFT stft;
     private final AnalyzerParameters analyzerParam;
 
     private double[] spectrumDBcopy;   // transfers data from SamplingLoop to text representation
@@ -156,7 +155,7 @@ class SamplingLoop extends Thread {
         short[] audioSamples = new short[readChunkSize];
         int numOfReadShort;
 
-        stft = new ShortTimeFT(analyzerParam);
+        ShortTimeFT stft = new ShortTimeFT(analyzerParam);
         stft.setAWeighting(analyzerParam.isAWeighting);
         if (spectrumDBcopy == null || spectrumDBcopy.length != analyzerParam.fftLen/2+1) {
             spectrumDBcopy = new double[analyzerParam.fftLen/2+1];
@@ -287,55 +286,43 @@ class SamplingLoop extends Thread {
                                 case 1:
                                     if (! messageStarted) {
                                         messageStarted = true;
-                                        newFrequency = "[";
-                                    }
-                                    break;
+                                        newFrequency = "\n[";
+                                    } break;
                                 case 2:
                                     //newFrequency = "18.0 ";
-                                    newFrequency = "0";
-                                    break;
+                                    newFrequency = "0"; break;
                                 case 3:
                                     //newFrequency = "18.2 ";
-                                    newFrequency = "1";
-                                    break;
+                                    newFrequency = "1"; break;
                                 case 4:
                                     //newFrequency = "18.4 ";
-                                    newFrequency = "2";
-                                    break;
+                                    newFrequency = "2"; break;
                                 case 5:
                                     //newFrequency = "18.6 ";
-                                    newFrequency = "3";
-                                    break;
+                                    newFrequency = "3"; break;
                                 case 6:
                                     //newFrequency = "18.8 ";
-                                    newFrequency = "4";
-                                    break;
+                                    newFrequency = "4"; break;
                                 case 7:
                                     //newFrequency = "19.0 ";
-                                    newFrequency = "5";
-                                    break;
+                                    newFrequency = "5"; break;
                                 case 8:
                                     //newFrequency = "19.2 ";
-                                    newFrequency = "6";
-                                    break;
+                                    newFrequency = "6"; break;
                                 case 9:
                                     //newFrequency = "19.4 ";
-                                    newFrequency = "7";
-                                    break;
+                                    newFrequency = "7"; break;
                                 case 10:
                                     //newFrequency = "19.6 ";
-                                    newFrequency = "8";
-                                    break;
+                                    newFrequency = "8"; break;
                                 case 11:
                                     //newFrequency = "19.8 ";
-                                    newFrequency = "9";
-                                    break;
+                                    newFrequency = "9"; break;
                                 case 12:
                                     if (messageStarted) {
                                         decodeMessage();
                                         messageStarted = false;
-                                    }
-                                    break;
+                                    } break;
                                 default:
                                     break;
                             }
@@ -431,21 +418,19 @@ class SamplingLoop extends Thread {
     }
 
     private int[] getMaxValueAndIndex (int[] values) {
-        int[] array = values;
 
-        int max = array[0];
+        int max = values[0];
         int index = 0;
 
-        for (int i = 0; i < array.length; i++) {
-            if (max < array[i])
+        for (int i = 0; i < values.length; i++) {
+            if (max < values[i])
             {
-                max = array[i];
+                max = values[i];
                 index = i;
             }
         }
-        int[] result = {max, index};
 
-        return result;
+        return new int[]{max, index};
     }
 
     private void appendToDecodedMessage(String newFrequency) {
@@ -482,86 +467,59 @@ class SamplingLoop extends Thread {
             } else {
                 switch (Integer.parseInt(encodedCharacter)) {
                     case 65:
-                        encodedCharacter = "A";
-                        break;
+                        encodedCharacter = "A"; break;
                     case 66:
-                        encodedCharacter = "B";
-                        break;
+                        encodedCharacter = "B"; break;
                     case 67:
-                        encodedCharacter = "C";
-                        break;
+                        encodedCharacter = "C"; break;
                     case 68:
-                        encodedCharacter = "D";
-                        break;
+                        encodedCharacter = "D"; break;
                     case 69:
-                        encodedCharacter = "E";
-                        break;
+                        encodedCharacter = "E"; break;
                     case 70:
-                        encodedCharacter = "F";
-                        break;
+                        encodedCharacter = "F"; break;
                     case 71:
-                        encodedCharacter = "G";
-                        break;
+                        encodedCharacter = "G"; break;
                     case 72:
-                        encodedCharacter = "H";
-                        break;
+                        encodedCharacter = "H"; break;
                     case 73:
-                        encodedCharacter = "I";
-                        break;
+                        encodedCharacter = "I"; break;
                     case 74:
-                        encodedCharacter = "J";
-                        break;
+                        encodedCharacter = "J"; break;
                     case 75:
-                        encodedCharacter = "K";
-                        break;
+                        encodedCharacter = "K"; break;
                     case 76:
-                        encodedCharacter = "L";
-                        break;
+                        encodedCharacter = "L"; break;
                     case 77:
-                        encodedCharacter = "M";
-                        break;
+                        encodedCharacter = "M"; break;
                     case 78:
-                        encodedCharacter = "N";
-                        break;
+                        encodedCharacter = "N"; break;
                     case 79:
-                        encodedCharacter = "O";
-                        break;
+                        encodedCharacter = "O"; break;
                     case 80:
-                        encodedCharacter = "P";
-                        break;
+                        encodedCharacter = "P"; break;
                     case 81:
-                        encodedCharacter = "Q";
-                        break;
+                        encodedCharacter = "Q"; break;
                     case 82:
-                        encodedCharacter = "R";
-                        break;
+                        encodedCharacter = "R"; break;
                     case 83:
-                        encodedCharacter = "S";
-                        break;
+                        encodedCharacter = "S"; break;
                     case 84:
-                        encodedCharacter = "T";
-                        break;
+                        encodedCharacter = "T"; break;
                     case 85:
-                        encodedCharacter = "U";
-                        break;
+                        encodedCharacter = "U"; break;
                     case 86:
-                        encodedCharacter = "V";
-                        break;
+                        encodedCharacter = "V"; break;
                     case 87:
-                        encodedCharacter = "W";
-                        break;
+                        encodedCharacter = "W"; break;
                     case 88:
-                        encodedCharacter = "X";
-                        break;
+                        encodedCharacter = "X"; break;
                     case 89:
-                        encodedCharacter = "Y";
-                        break;
+                        encodedCharacter = "Y"; break;
                     case 90:
-                        encodedCharacter = "Z";
-                        break;
+                        encodedCharacter = "Z"; break;
                     default:
-                        encodedCharacter = "_";
-                        break;
+                        encodedCharacter = "_"; break;
                 }
             }
             decodedMessage.append(encodedCharacter);
@@ -571,7 +529,7 @@ class SamplingLoop extends Thread {
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                activity.decodedMessage.append("] = " + decodedMessageFinal +"\n");
+                activity.decodedMessage.append("] = " + decodedMessageFinal);
             }
         });
     }
