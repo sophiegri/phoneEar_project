@@ -1,6 +1,6 @@
 **to do**
 
-- [ ] disable landscape
+- [ ] adjust layout, so message is scrollable and has a border, like message
 
 # functionality
 
@@ -37,6 +37,9 @@ audio compression did impact the performance of the system and as expected, data
 ### identifying the sound
 
 A tone is identified for decoding if it appears longer than a certain amount of time (500ms) and its amplitude is greater than a threshold value (30% above the mean amplitude of the frequencies in the range from 15.8–17 kHz). We choose to use a 500ms pulse to ensure that data can be received from a good distance. Due to the fact that the pulse duration is proportional to wave energy, higher pulse duration introduces higher SNR and higher power (the received power varies inversely with the square of the distance), allowing data to be reliably transferred farther (our results provide a higher operating distance when compared to previous work). Our current implementation allows a speed of 8 bits per second, which is sufficient for sending 1 byte/sec. up to 18 m. Speed can be improved for apps requiring shorter operating distances. Our current implementation is meant to demonstrate the upper bound of PhoneEar’s working distance and the corresponding lower bound of data transformation speed.
+
+Frequency response: speakers don't reproduce high frequencies at same loudness as midrange
+https://www.alesis.com/kb/article/2227
 
 ### decoding message
 
@@ -139,3 +142,5 @@ choose a larger size (ca. 1 sec) so that overrun is unlikely
 
 
 ## fft window (overlapped analyze window)
+
+window function von-hann-window

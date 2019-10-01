@@ -22,9 +22,14 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.widget.ToggleButton;
 
-import java.util.Arrays;
+/*
+sources:
+(main source) https://github.com/bewantbe/audio-analyzer-for-android
+we built on top of that and added multiple functions for the functionality we needed
 
-// source: https://github.com/bewantbe/audio-analyzer-for-android
+https://www.quora.com/How-do-I-update-the-UI-from-a-background-thread-in-Android
+https://stackoverflow.com/questions/1235179/simple-way-to-repeat-a-string-in-java
+ */
 
 /**
  * Read a snapshot of audio data at a regular interval, and compute the FFT
@@ -38,14 +43,15 @@ import java.util.Arrays;
 class SamplingLoop extends Thread {
     private final String TAG = "SamplingLoop";
     private volatile boolean isRunning = true;
-    private volatile boolean recordingIsPaused = false;
+    private volatile boolean recordingIsPaused;
     private volatile boolean messageStarted = false;
-    private ShortTimeFT stft;   // use with care
+    private volatile boolean waitForNextRound = false;
+    private ShortTimeFT stft;
     private final AnalyzerParameters analyzerParam;
 
     private double[] spectrumDBcopy;   // transfers data from SamplingLoop to text representation
     // initiate array that keeps score how often a frequency was the maximum value
-    private int[] frequencyMaxAmount = new int[12];
+    private int[] frequencyMaxAmount = new int[13];
     private int maxCounter;
 
     private final MainActivity activity;
@@ -65,30 +71,25 @@ class SamplingLoop extends Thread {
         }
     }
 
-    private double baseTimeMs = SystemClock.uptimeMillis();
-
     @Override
     public void run() {
         AudioRecord record;
 
-        long tStart = SystemClock.uptimeMillis();
-        long tEnd = SystemClock.uptimeMillis();
         long lastUpdate = SystemClock.uptimeMillis();
 
         if (! recordingIsPaused) {
             activity.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    activity.currentState.setText("Message: Getting ready...");
+                activity.currentState.setText("Info: Getting ready...");
+                activity.decodedMessage.setText("");
                 }
             });
         }
 
-        if (tEnd - tStart < 500) {
-            Log.i(TAG, "wait more.." + (500 - (tEnd - tStart)) + " ms");
-            // Wait until previous instance of AudioRecord fully released.
-            SleepWithoutInterrupt(500 - (tEnd - tStart));
-        }
+        Log.i(TAG, "wait more.." + 500 + " ms");
+        // Wait until previous instance of AudioRecord fully released.
+        SleepWithoutInterrupt(500);
 
         int minBytes = AudioRecord.getMinBufferSize(analyzerParam.sampleRate, AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT);
@@ -175,13 +176,13 @@ class SamplingLoop extends Thread {
         // Main loop
         // When running in this loop (including when paused), you can not change properties
         // related to recorder: e.g. audioSourceId, sampleRate, bufferSampleSize
+
         while (isRunning) {
             // Read data
             numOfReadShort = record.read(audioSamples, 0, readChunkSize);   // pulling
 
             if (recordingIsPaused) {
-//          fpsCounter.inc();
-                // keep reading data, for overrun checker and for write wav data
+                // keep reading data for overrun checker
                 continue;
             }
 
@@ -193,121 +194,172 @@ class SamplingLoop extends Thread {
                 final double[] spectrumDB = stft.getSpectrumAmpDB();
                 System.arraycopy(spectrumDB, 0, spectrumDBcopy, 0, spectrumDB.length);
 
-                // source: https://www.quora.com/How-do-I-update-the-UI-from-a-background-thread-in-Android
                 activity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         activity.frequenciesTextVisualization.setText(
-                            "17.800 Hz : " + convertValuesIntoSigns(spectrumDBcopy[207]) + "\n" +
-                            "18.000 Hz : " + convertValuesIntoSigns(spectrumDBcopy[209]) + "\n" +
-                            "18.200 Hz : " + convertValuesIntoSigns(spectrumDBcopy[211]) + "\n" +
-                            "18.400 Hz : " + convertValuesIntoSigns(spectrumDBcopy[214]) + "\n" +
-                            "18.600 Hz : " + convertValuesIntoSigns(spectrumDBcopy[216]) + "\n" +
-                            "18.800 Hz : " + convertValuesIntoSigns(spectrumDBcopy[218]) + "\n" +
-                            "19.000 Hz : " + convertValuesIntoSigns(spectrumDBcopy[221]) + "\n" +
-                            "19.200 Hz : " + convertValuesIntoSigns(spectrumDBcopy[223]) + "\n" +
-                            "19.400 Hz : " + convertValuesIntoSigns(spectrumDBcopy[225]) + "\n" +
-                            "19.600 Hz : " + convertValuesIntoSigns(spectrumDBcopy[228]) + "\n" +
-                            "19.800 Hz : " + convertValuesIntoSigns(spectrumDBcopy[230]) + "\n" +
-                            "20.000 Hz : " + convertValuesIntoSigns(spectrumDBcopy[232])
+                            "Phase       : " + convertValuesIntoSigns(spectrumDBcopy[204]) + "\n" +
+                            "17.8 kHz ([): " + convertValuesIntoSigns(spectrumDBcopy[207]) + "\n" +
+                            "18.0 kHz (0): " + convertValuesIntoSigns(spectrumDBcopy[209]) + "\n" +
+                            "18.2 kHz (1): " + convertValuesIntoSigns(spectrumDBcopy[211]) + "\n" +
+                            "18.4 kHz (2): " + convertValuesIntoSigns(spectrumDBcopy[214]) + "\n" +
+                            "18.6 kHz (3): " + convertValuesIntoSigns(spectrumDBcopy[216]) + "\n" +
+                            "18.8 kHz (4): " + convertValuesIntoSigns(spectrumDBcopy[218]) + "\n" +
+                            "19.0 kHz (5): " + convertValuesIntoSigns(spectrumDBcopy[221]) + "\n" +
+                            "19.2 kHz (6): " + convertValuesIntoSigns(spectrumDBcopy[223]) + "\n" +
+                            "19.4 kHz (7): " + convertValuesIntoSigns(spectrumDBcopy[225]) + "\n" +
+                            "19.6 kHz (8): " + convertValuesIntoSigns(spectrumDBcopy[228]) + "\n" +
+                            "19.8 kHz (9): " + convertValuesIntoSigns(spectrumDBcopy[230]) + "\n" +
+                            "20.0 kHz (]): " + convertValuesIntoSigns(spectrumDBcopy[232])
                         );
-                        //activity.currentState.setText("Message: Waiting for begin of message...");
-                        activity.currentState.setText("Message: " + Arrays.toString(frequencyMaxAmount));
+                        if (messageStarted) {
+                            activity.currentState.setText("Info: Receiving message...");
+                            //activity.currentState.setText("Message: \n" + Arrays.toString(frequencyMaxAmount));
+                        } else {
+                            activity.currentState.setText("Info: Waiting for message...");
+                        }
                     }
                 });
 
-                stft.calculatePeak();
-                activity.maxAmpFreq = stft.maxAmpFreq;
-                activity.maxAmpDB = stft.maxAmpDB;
-
-                // get RMS
-                activity.dtRMS = stft.getRMS();
-                activity.dtRMSFromFT = stft.getRMSFromFT();
-
                 // update recent value list every 50ms
-                if (SystemClock.uptimeMillis()-lastUpdate > 100) {
+                if (SystemClock.uptimeMillis()-lastUpdate > 50) {
+                    //Log.i(TAG, "SamplingLoop::Run(): measurement " + maxCounter);
                     lastUpdate = SystemClock.uptimeMillis();
-                    // average value from 15.8 kHz to 17 kHz
-                    int average = (int) ((spectrumDBcopy[183]+spectrumDBcopy[186]+spectrumDBcopy[188]+spectrumDBcopy[190]+spectrumDBcopy[193]+spectrumDBcopy[195]+spectrumDBcopy[197])/7);
-                    int[] valuesFrequency = new int[12];
-                    valuesFrequency[0] = (int) spectrumDBcopy[207];
-                    valuesFrequency[1] = (int) spectrumDBcopy[209];
-                    valuesFrequency[2] = (int) spectrumDBcopy[211];
-                    valuesFrequency[3] = (int) spectrumDBcopy[214];
-                    valuesFrequency[4] = (int) spectrumDBcopy[216];
-                    valuesFrequency[5] = (int) spectrumDBcopy[218];
-                    valuesFrequency[6] = (int) spectrumDBcopy[221];
-                    valuesFrequency[7] = (int) spectrumDBcopy[223];
-                    valuesFrequency[8] = (int) spectrumDBcopy[225];
-                    valuesFrequency[9] = (int) spectrumDBcopy[228];
-                    valuesFrequency[10] = (int) spectrumDBcopy[230];
-                    valuesFrequency[11] = (int) spectrumDBcopy[232];
+                    // average value from 15.8 kHz to 16.8 kHz
+                    int averageComparison = (int) ((spectrumDBcopy[183]+spectrumDBcopy[186]+spectrumDBcopy[188]+spectrumDBcopy[190]+spectrumDBcopy[193]+spectrumDBcopy[195])/6);
+                    //int averageMain = (int) ((spectrumDBcopy[204]+spectrumDBcopy[207]+spectrumDBcopy[209]+spectrumDBcopy[211]+spectrumDBcopy[214]+spectrumDBcopy[216]+spectrumDBcopy[218]+spectrumDBcopy[221]+spectrumDBcopy[223]+spectrumDBcopy[225]+spectrumDBcopy[228]+spectrumDBcopy[230]+spectrumDBcopy[232])/13);
+                    int[] valuesFrequency = new int[13];
+                    // assign values for 17 kHz (phase)  and target frequencies 17.8 kHz to 20 kHz
+                    valuesFrequency[0] = (int) spectrumDBcopy[197];
+                    valuesFrequency[1] = (int) spectrumDBcopy[207];
+                    valuesFrequency[2] = (int) spectrumDBcopy[209];
+                    valuesFrequency[3] = (int) spectrumDBcopy[211];
+                    valuesFrequency[4] = (int) spectrumDBcopy[214];
+                    valuesFrequency[5] = (int) spectrumDBcopy[216];
+                    valuesFrequency[6] = (int) spectrumDBcopy[218];
+                    valuesFrequency[7] = (int) spectrumDBcopy[221];
+                    valuesFrequency[8] = (int) spectrumDBcopy[223];
+                    valuesFrequency[9] = (int) spectrumDBcopy[225];
+                    valuesFrequency[10] = (int) spectrumDBcopy[228];
+                    valuesFrequency[11] = (int) spectrumDBcopy[230];
+                    valuesFrequency[12] = (int) spectrumDBcopy[232];
 
+                    boolean phaseSignal = false;
+
+                    // get the maximum value of phase and target frequencies and the index in the array
                     int[] maxValueAndIndexCurrent = getMaxValueAndIndex(valuesFrequency);
-                    if (maxValueAndIndexCurrent[0] > average * 1.3) {
+
+                    // if the maximum value is higher than the average of the comparison frequencies * 0.9
+                    if (maxValueAndIndexCurrent[0] > (int) (averageComparison * 0.9)) {
+                        // increase the counter in the amount-of-maxima array
                         frequencyMaxAmount[maxValueAndIndexCurrent[1]]++;
+
+                        // if current maximum is phase frequency
+                        if (maxValueAndIndexCurrent[1] == 0) {
+                            // set phaseSignal to true
+                            phaseSignal = true;
+                            //Log.i(TAG, "SamplingLoop::Run(): maxValue: " + maxValueAndIndexCurrent[0]);
+                            //Log.i(TAG, "SamplingLoop::Run(): averageComparison * 0.9: " + (int) (averageComparison * 0.9));
+                            //Log.i(TAG, "SamplingLoop::Run(): averageMain: " + averageMain * 0.7);
+                            // && maxValueAndIndexCurrent[0] > averageMain * 0.7
+                        }
                     }
+
                     maxCounter++;
 
+                    // get the amount of maxima of the phase or target frequency with the most maxima and the index in the array
                     int[] maxValueAndIndexOverall = getMaxValueAndIndex(frequencyMaxAmount);
-                    if (maxValueAndIndexOverall[0] >= 7) {
-                        maxCounter = 0;
-                        frequencyMaxAmount = new int[12];
+
+                    if (messageStarted) {
+                        //Log.i(TAG, "SamplingLoop::Run(): maxValueAndIndexOverall: (" + maxValueAndIndexOverall[0] + "," + maxValueAndIndexOverall[1] +")");
+                    }
+
+                    // if the amount of maxima is equal to a certain threshold or the phaseSignal
+                    if ((maxValueAndIndexOverall[0] == 4 && !waitForNextRound) || phaseSignal) {
+
                         String newFrequency = "";
-                        switch (maxValueAndIndexOverall[1]) {
-                            case 0:
-                                if (! messageStarted) {
-                                    messageStarted = true;
-                                    newFrequency = "Start: ";
-                                }
-                                break;
-                            case 1:
-                                newFrequency = "18.0; ";
-                                break;
-                            case 2:
-                                newFrequency = "18.2; ";
-                                break;
-                            case 3:
-                                newFrequency = "18.4; ";
-                                break;
-                            case 4:
-                                newFrequency = "18.6; ";
-                                break;
-                            case 5:
-                                newFrequency = "18.8; ";
-                                break;
-                            case 6:
-                                newFrequency = "19.0; ";
-                                break;
-                            case 7:
-                                newFrequency = "19.2; ";
-                                break;
-                            case 8:
-                                newFrequency = "19.4; ";
-                                break;
-                            case 9:
-                                newFrequency = "19.6; ";
-                                break;
-                            case 10:
-                                newFrequency = "19.8; ";
-                                break;
-                            case 11:
-                                if (messageStarted) {
-                                    appendToDecodedMessage("End");
-                                    messageStarted = false;
-                                }
-                                break;
-                            default:
-                                break;
+
+                        if (phaseSignal) {
+                            newFrequency = "";
+                        } else {
+                            waitForNextRound = true;
+                            switch (maxValueAndIndexOverall[1]) {
+                                case 1:
+                                    if (! messageStarted) {
+                                        messageStarted = true;
+                                        newFrequency = "[";
+                                    }
+                                    break;
+                                case 2:
+                                    //newFrequency = "18.0 ";
+                                    newFrequency = "0";
+                                    break;
+                                case 3:
+                                    //newFrequency = "18.2 ";
+                                    newFrequency = "1";
+                                    break;
+                                case 4:
+                                    //newFrequency = "18.4 ";
+                                    newFrequency = "2";
+                                    break;
+                                case 5:
+                                    //newFrequency = "18.6 ";
+                                    newFrequency = "3";
+                                    break;
+                                case 6:
+                                    //newFrequency = "18.8 ";
+                                    newFrequency = "4";
+                                    break;
+                                case 7:
+                                    //newFrequency = "19.0 ";
+                                    newFrequency = "5";
+                                    break;
+                                case 8:
+                                    //newFrequency = "19.2 ";
+                                    newFrequency = "6";
+                                    break;
+                                case 9:
+                                    //newFrequency = "19.4 ";
+                                    newFrequency = "7";
+                                    break;
+                                case 10:
+                                    //newFrequency = "19.6 ";
+                                    newFrequency = "8";
+                                    break;
+                                case 11:
+                                    //newFrequency = "19.8 ";
+                                    newFrequency = "9";
+                                    break;
+                                case 12:
+                                    if (messageStarted) {
+                                        decodeMessage();
+                                        messageStarted = false;
+                                    }
+                                    break;
+                                default:
+                                    break;
+                            }
                         }
-                        if (messageStarted) {
+
+                        if (messageStarted || phaseSignal) {
                             appendToDecodedMessage(newFrequency);
                         }
                     }
 
-                    if (maxCounter == 10) { // reset maxCounter after 10 x 50 ms
+                    if (maxCounter == 10 || phaseSignal) { // reset maxCounter after 10 x 50 ms or when phase signal is detected
+                        if (messageStarted) {
+                            //Log.i(TAG, "SamplingLoop::Run(): phaseSignal: " + phaseSignal);
+                            //Log.i(TAG, "SamplingLoop::Run(): maxCounter: " + maxCounter);
+                            //Log.i(TAG, "SamplingLoop::Run(): maxValueAndIndexOverall[0]: " + maxValueAndIndexOverall[0]);
+                            //Log.i(TAG, "---------------------------------------------");
+                        }
+                        // maxCounter >= 3, because signal needs to have a certain length and is not supposed to be a phase signal (max. length 2)
+                        if (messageStarted && maxCounter >= 3 && maxValueAndIndexOverall[0] < 4 && maxValueAndIndexOverall[1] != 1) {
+                            appendToDecodedMessage("_");
+                        }
                         maxCounter = 0;
-                        frequencyMaxAmount = new int[12];
+                        waitForNextRound = false;
+                        frequencyMaxAmount = new int[13];
                     }
                 }
             }
@@ -318,79 +370,68 @@ class SamplingLoop extends Thread {
            @Override
            public void run() {
                activity.frequenciesTextVisualization.setText(
-                       "17.800 Hz :\n" +
-                       "18.000 Hz :\n" +
-                       "18.200 Hz :\n" +
-                       "18.400 Hz :\n" +
-                       "18.600 Hz :\n" +
-                       "18.800 Hz :\n" +
-                       "19.000 Hz :\n" +
-                       "19.200 Hz :\n" +
-                       "19.400 Hz :\n" +
-                       "19.600 Hz :\n" +
-                       "19.800 Hz :\n" +
-                       "20.000 Hz :"
+                       "Phase       :\n" +
+                       "17.8 kHz ([):\n" +
+                       "18.0 kHz (0):\n" +
+                       "18.2 kHz (1):\n" +
+                       "18.4 kHz (2):\n" +
+                       "18.6 kHz (3):\n" +
+                       "18.8 kHz (4):\n" +
+                       "19.0 kHz (5):\n" +
+                       "19.2 kHz (6):\n" +
+                       "19.4 kHz (7):\n" +
+                       "19.6 kHz (8):\n" +
+                       "19.8 kHz (9):\n" +
+                       "20.0 kHz (]):"
                );
-               activity.currentState.setText("Message: Waiting for the start of the recording.");
-               activity.decodedMessage.setText("");
+               activity.currentState.setText("Info: Please start recording :)");
            }
         });
         record.stop();
         record.release();
     }
 
-    void setAWeighting(boolean isAWeighting) {
-        if (stft != null) {
-            stft.setAWeighting(isAWeighting);
-        }
-    }
-
-    void setPause(boolean pause) {
-        this.recordingIsPaused = pause;
-    }
-
-    boolean getPause() {
-        return this.recordingIsPaused;
-    }
-
-    // with help of: https://stackoverflow.com/questions/1235179/simple-way-to-repeat-a-string-in-java
-    String convertValuesIntoSigns (double value) {
-        String str = "|||||";
-        if (value < -90) {
+    private String convertValuesIntoSigns (double value) {
+        String str = "|";
+        if (value < -100) {
             return str;
-        } else if (value < -85) {
+        } else if (value < -95) {
+            return new String(new char[1]).replace("\0", str);
+        } else if (value < -90) {
             return new String(new char[2]).replace("\0", str);
-        } else if (value < -80) {
+        } else if (value < -85) {
             return new String(new char[3]).replace("\0", str);
-        } else if (value < -75) {
+        } else if (value < -80) {
             return new String(new char[4]).replace("\0", str);
-        } else if (value < -70) {
+        } else if (value < -75) {
             return new String(new char[5]).replace("\0", str);
-        } else if (value < -65) {
+        } else if (value < -70) {
             return new String(new char[6]).replace("\0", str);
-        } else if (value < -60) {
+        } else if (value < -65) {
             return new String(new char[7]).replace("\0", str);
-        } else if (value < -55) {
+        } else if (value < -60) {
             return new String(new char[8]).replace("\0", str);
-        } else if (value < -50) {
+        } else if (value < -55) {
             return new String(new char[9]).replace("\0", str);
-        } else if (value < -45) {
+        } else if (value < -50) {
             return new String(new char[10]).replace("\0", str);
-        } else if (value < -40) {
+        } else if (value < -45) {
             return new String(new char[11]).replace("\0", str);
-        } else if (value < -35) {
+        } else if (value < -40) {
             return new String(new char[12]).replace("\0", str);
-        } else if (value < -30) {
+        } else if (value < -35) {
             return new String(new char[13]).replace("\0", str);
-        } else if (value > -20) {
+        } else if (value < -30) {
             return new String(new char[14]).replace("\0", str);
+        } else if (value > -20) {
+            return new String(new char[15]).replace("\0", str);
         } else {
             return "";
         }
     }
 
-    int[] getMaxValueAndIndex (int[] values) {
-        int array[] = values;
+    private int[] getMaxValueAndIndex (int[] values) {
+        int[] array = values;
 
         int max = array[0];
         int index = 0;
@@ -407,12 +448,130 @@ class SamplingLoop extends Thread {
         return result;
     }
 
-    void appendToDecodedMessage(String newFrequency) {
+    private void appendToDecodedMessage(String newFrequency) {
         final String frequency = newFrequency;
+        Log.i(TAG, "SamplingLoop::Run(): added: " + frequency);
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 activity.decodedMessage.append(frequency);
+            }
+        });
+    }
+
+    private void decodeMessage() {
+        String codedMessage = activity.decodedMessage.getText().toString();
+
+        int startMessage = codedMessage.lastIndexOf("[");
+        int endMessage = codedMessage.length();
+
+        String message = codedMessage.substring(startMessage+1, endMessage);
+        int messageLength = message.length();
+
+        if (messageLength % 2 == 1) { // in case the length of the message is not even, add a "-" at the end, to provide an even message length
+            messageLength += 1;
+            message = message.concat("_");
+        }
+
+        StringBuffer decodedMessage = new StringBuffer(20);
+        for (int i = 0; i < messageLength/2; i++) {
+            String encodedCharacter = message.substring(2*i, 2*i+2);
+            Log.i(TAG, "SamplingLoop::decodeMessage(): encodedCharacter: " + encodedCharacter);
+            if (encodedCharacter.contains("_")) {
+                encodedCharacter = "_";
+            } else {
+                switch (Integer.parseInt(encodedCharacter)) {
+                    case 65:
+                        encodedCharacter = "A";
+                        break;
+                    case 66:
+                        encodedCharacter = "B";
+                        break;
+                    case 67:
+                        encodedCharacter = "C";
+                        break;
+                    case 68:
+                        encodedCharacter = "D";
+                        break;
+                    case 69:
+                        encodedCharacter = "E";
+                        break;
+                    case 70:
+                        encodedCharacter = "F";
+                        break;
+                    case 71:
+                        encodedCharacter = "G";
+                        break;
+                    case 72:
+                        encodedCharacter = "H";
+                        break;
+                    case 73:
+                        encodedCharacter = "I";
+                        break;
+                    case 74:
+                        encodedCharacter = "J";
+                        break;
+                    case 75:
+                        encodedCharacter = "K";
+                        break;
+                    case 76:
+                        encodedCharacter = "L";
+                        break;
+                    case 77:
+                        encodedCharacter = "M";
+                        break;
+                    case 78:
+                        encodedCharacter = "N";
+                        break;
+                    case 79:
+                        encodedCharacter = "O";
+                        break;
+                    case 80:
+                        encodedCharacter = "P";
+                        break;
+                    case 81:
+                        encodedCharacter = "Q";
+                        break;
+                    case 82:
+                        encodedCharacter = "R";
+                        break;
+                    case 83:
+                        encodedCharacter = "S";
+                        break;
+                    case 84:
+                        encodedCharacter = "T";
+                        break;
+                    case 85:
+                        encodedCharacter = "U";
+                        break;
+                    case 86:
+                        encodedCharacter = "V";
+                        break;
+                    case 87:
+                        encodedCharacter = "W";
+                        break;
+                    case 88:
+                        encodedCharacter = "X";
+                        break;
+                    case 89:
+                        encodedCharacter = "Y";
+                        break;
+                    case 90:
+                        encodedCharacter = "Z";
+                        break;
+                    default:
+                        encodedCharacter = "_";
+                        break;
+                }
+            }
+            decodedMessage.append(encodedCharacter);
+        }
+
+        final String decodedMessageFinal = decodedMessage.toString();
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                activity.decodedMessage.append("] = " + decodedMessageFinal +"\n");
             }
         });
     }

@@ -4,8 +4,6 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.SystemClock;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -17,31 +15,22 @@ import android.widget.Toast;
 /*
 Sources:
 https://github.com/ptyagicodecamp/android-recipes/blob/develop/AudioRuntimePermissions/
-
+https://github.com/bewantbe/audio-analyzer-for-android
  */
 
 public class MainActivity extends AppCompatActivity {
 
+    // for visualizing the measured amplitude of the different frequencies
     TextView frequenciesTextVisualization;
+    // for informing about the current state of the app
     TextView currentState;
+    // for displaying the coded and decoded message
     TextView decodedMessage;
-    boolean isRecording = false;
 
     SamplingLoop samplingThread = null;
     private AnalyzerParameters analyzerParam = null;
 
-    double dtRMS = 0;
-    double dtRMSFromFT = 0;
-    double maxAmpDB;
-    double maxAmpFreq;
-    double[] viewRangeArray = null;
-    protected long appStart = SystemClock.uptimeMillis();
-
-    // This is the activity main thread Handler.
-    private Handler updateUIHandler = null;
-
-    // Message type code.
-    private final static int MESSAGE_UPDATE_TEXT_CHILD_THREAD =1;
+    private boolean bSamplingPreparation = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,30 +44,26 @@ public class MainActivity extends AppCompatActivity {
         analyzerParam = new AnalyzerParameters(res);
 
         frequenciesTextVisualization.setText(
-                "17.800 Hz :\n" +
-                "18.000 Hz :\n" +
-                "18.200 Hz :\n" +
-                "18.400 Hz :\n" +
-                "18.600 Hz :\n" +
-                "18.800 Hz :\n" +
-                "19.000 Hz :\n" +
-                "19.200 Hz :\n" +
-                "19.400 Hz :\n" +
-                "19.600 Hz :\n" +
-                "19.800 Hz :\n" +
-                "20.000 Hz :"
+                "Phase       :\n" +
+                "17.8 kHz ([):\n" +
+                "18.0 kHz (0):\n" +
+                "18.2 kHz (1):\n" +
+                "18.4 kHz (2):\n" +
+                "18.6 kHz (3):\n" +
+                "18.8 kHz (4):\n" +
+                "19.0 kHz (5):\n" +
+                "19.2 kHz (6):\n" +
+                "19.4 kHz (7):\n" +
+                "19.6 kHz (8):\n" +
+                "19.8 kHz (9):\n" +
+                "20.0 kHz (]):"
         );
-        currentState.setText("Message: Waiting for the start of the recording.");
+        currentState.setText("Info: Please start recording :)");
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-
-        /*
-        analyzerViews.graphView.setReady(this);  // TODO: move this earlier?
-        analyzerViews.enableSaveWavView(bSaveWav);
-         */
 
         // Used to prevent extra calling to restartSampling() (e.g. in LoadPreferences())
         bSamplingPreparation = true;
@@ -105,8 +90,6 @@ public class MainActivity extends AppCompatActivity {
         restartSampling(analyzerParam);
     }
 
-    private boolean bSamplingPreparation = false;
-
     private void restartSampling(final AnalyzerParameters _analyzerParam) {
         // Stop previous sampler if any.
         if (samplingThread != null) {
@@ -118,26 +101,6 @@ public class MainActivity extends AppCompatActivity {
             }
             samplingThread = null;
         }
-
-        /*
-        if (viewRangeArray != null) {
-            analyzerViews.graphView.setupAxes(analyzerParam);
-            double[] rangeDefault = analyzerViews.graphView.getViewPhysicalRange();
-            Log.i(TAG, "restartSampling(): setViewRange: " + viewRangeArray[0] + " ~ " + viewRangeArray[1]);
-            analyzerViews.graphView.setViewRange(viewRangeArray, rangeDefault);
-            if (! isLockViewRange) viewRangeArray = null;  // do not conserve
-        }
-         */
-
-        /*
-        // Set the view for incoming data
-        graphInit = new Thread(new Runnable() {
-            public void run() {
-                analyzerViews.setupView(_analyzerParam);
-            }
-        });
-        graphInit.start();
-         */
 
         // Check and request permissions
         if (! requestAudioPermissions()) {
@@ -182,18 +145,16 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         //If permission is granted, then go ahead recording audio
-        else if (ContextCompat.checkSelfPermission(this,
+        else return ContextCompat.checkSelfPermission(this,
                 Manifest.permission.RECORD_AUDIO)
-                == PackageManager.PERMISSION_GRANTED) {
-            return true;
-        }
+                == PackageManager.PERMISSION_GRANTED;
         return false;
     }
 
     //Handling callback
     @Override
     public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[], int[] grantResults) {
+                                           String[] permissions, int[] grantResults) {
         switch (requestCode) {
             case MY_PERMISSIONS_RECORD_AUDIO: {
                 if (grantResults.length > 0
@@ -202,7 +163,7 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
-                    Toast.makeText(this, "Permissions Denied to record audio", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "Permissions denied to record audio", Toast.LENGTH_LONG).show();
                 }
                 return;
             }

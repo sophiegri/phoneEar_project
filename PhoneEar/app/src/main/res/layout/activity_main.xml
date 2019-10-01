@@ -9,25 +9,28 @@
 
     <TextView
         android:id="@+id/title"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="32dp"
+        android:fontFamily="monospace"
+        android:background="@drawable/rounded_rectangle"
         android:text="@string/app_name"
         android:textAppearance="@style/TextAppearance.AppCompat.Display1"
         android:visibility="visible"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/guidelineVerticalBegin"
         app:layout_constraintEnd_toEndOf="@+id/guidelineVerticalEnd"
-        app:layout_constraintHorizontal_bias="0.5" />
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/guidelineVerticalBegin"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/current_state"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:layout_marginBottom="32dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:fontFamily="monospace"
+        android:background="@drawable/rounded_rectangle"
         android:visibility="visible"
-        app:layout_constraintBottom_toTopOf="@+id/decode_message"
         app:layout_constraintEnd_toEndOf="@+id/guidelineVerticalEnd"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/guidelineVerticalBegin"
@@ -36,9 +39,12 @@
     <TextView
         android:id="@+id/decode_message"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:layout_marginBottom="32dp"
+        android:layout_height="120dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:fontFamily="monospace"
+        android:background="@drawable/rounded_rectangle"
+        android:scrollbars = "vertical"
         android:visibility="visible"
         app:layout_constraintBottom_toTopOf="@+id/audio_signal"
         app:layout_constraintEnd_toEndOf="@+id/guidelineVerticalEnd"
@@ -50,14 +56,15 @@
         android:id="@+id/audio_signal"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:layout_marginBottom="32dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:fontFamily="monospace"
+        android:background="@drawable/rounded_rectangle"
         android:visibility="visible"
         app:layout_constraintBottom_toTopOf="@+id/recordBtn"
         app:layout_constraintEnd_toEndOf="@+id/guidelineVerticalEnd"
         app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/guidelineVerticalBegin"
-        app:layout_constraintTop_toBottomOf="@+id/decode_message" />
+        app:layout_constraintStart_toEndOf="@+id/guidelineVerticalBegin"/>
 
     <ToggleButton
         android:id="@+id/recordBtn"
@@ -65,13 +72,14 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="32dp"
         android:layout_weight="0.5"
+        android:fontFamily="monospace"
         android:onClick="startRecording"
         android:text="@string/start_recording"
         android:textOff="@string/start_recording"
         android:textOn="@string/stop_recording"
-        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="@+id/guidelineVerticalEnd"
+        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/guidelineVerticalBegin" />
 
     <android.support.constraint.Guideline
